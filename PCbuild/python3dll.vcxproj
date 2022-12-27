@@ -175,9 +175,6 @@ nmake /f python3.mak MACHINE=x64 OutDir=$(OutDir) rebuild</NMakeReBuildCommandLi
   <ItemGroup>
     <ClCompile Include="..\PC\python3dll.c" />
   </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="..\PC\python_nt.rc" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
