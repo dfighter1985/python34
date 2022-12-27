@@ -1,0 +1,17 @@
+PC/*.obj
+PC/*.sdf
+PCbuild/*.user
+PCbuild/*.sdf
+PCbuild/*.opensdf
+PCbuild/*.exp
+PCbuild/*.lib
+PCbuild/*.dll
+PCbuild/*.exe
+PCbuild/*.pdb
+PCbuild/*.bsc
+PCbuild/ipch
+PCbuild/Win32-pgi
+PCbuild/Win32-temp-Debug
+PCbuild/Win32-temp-pgi
+PCbuild/*.suo
+
