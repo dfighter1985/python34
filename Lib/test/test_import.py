@@ -529,37 +529,6 @@ class PathsTests(unittest.TestCase):
         self.assertEqual(mod.testdata, 'test_trailing_slash')
         unload("test_trailing_slash")
 
-    # Regression test for http://bugs.python.org/issue3677.
-    @unittest.skipUnless(sys.platform == 'win32', 'Windows-specific')
-    def test_UNC_path(self):
-        with open(os.path.join(self.path, 'test_unc_path.py'), 'w') as f:
-            f.write("testdata = 'test_unc_path'")
-        importlib.invalidate_caches()
-        # Create the UNC path, like \\myhost\c$\foo\bar.
-        path = os.path.abspath(self.path)
-        import socket
-        hn = socket.gethostname()
-        drive = path[0]
-        unc = "\\\\%s\\%s$"%(hn, drive)
-        unc += path[2:]
-        try:
-            os.listdir(unc)
-        except OSError as e:
-            if e.errno in (errno.EPERM, errno.EACCES):
-                # See issue #15338
-                self.skipTest("cannot access administrative share %r" % (unc,))
-            raise
-        sys.path.insert(0, unc)
-        try:
-            mod = __import__("test_unc_path")
-        except ImportError as e:
-            self.fail("could not import 'test_unc_path' from %r: %r"
-                      % (unc, e))
-        self.assertEqual(mod.testdata, 'test_unc_path')
-        self.assertTrue(mod.__file__.startswith(unc), mod.__file__)
-        unload("test_unc_path")
-
-
 class RelativeImportTests(unittest.TestCase):
 
     def tearDown(self):

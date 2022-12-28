@@ -5,7 +5,6 @@ import errno
 import pathlib
 import pickle
 import shutil
-import socket
 import stat
 import sys
 import tempfile
@@ -1710,20 +1709,6 @@ class _BasePathTest(object):
         self.assertFalse((P / 'dirA').is_socket())
         self.assertFalse((P / 'non-existing').is_socket())
         self.assertFalse((P / 'fileA' / 'bah').is_socket())
-
-    @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "Unix sockets required")
-    def test_is_socket_true(self):
-        P = self.cls(BASE, 'mysock')
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.addCleanup(sock.close)
-        try:
-            sock.bind(str(P))
-        except OSError as e:
-            if "AF_UNIX path too long" in str(e):
-                self.skipTest("cannot bind Unix socket: " + str(e))
-        self.assertTrue(P.is_socket())
-        self.assertFalse(P.is_fifo())
-        self.assertFalse(P.is_file())
 
     def test_is_block_device_false(self):
         P = self.cls(BASE)

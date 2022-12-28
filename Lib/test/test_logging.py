@@ -35,7 +35,6 @@ import queue
 import random
 import re
 import select
-import socket
 import struct
 import sys
 import tempfile
@@ -55,13 +54,8 @@ try:
     import asynchat
     import asyncore
     import errno
-    from http.server import HTTPServer, BaseHTTPRequestHandler
-    import smtpd
     from urllib.parse import urlparse, parse_qs
-    from socketserver import (ThreadingUDPServer, DatagramRequestHandler,
-                              ThreadingTCPServer, StreamRequestHandler,
-                              ThreadingUnixStreamServer,
-                              ThreadingUnixDatagramServer)
+	
 except ImportError:
     threading = None
 try:
@@ -663,84 +657,6 @@ class StreamHandlerTest(BaseTest):
 # -- if it proves to be of wider utility than just test_logging
 
 if threading:
-    class TestSMTPServer(smtpd.SMTPServer):
-        """
-        This class implements a test SMTP server.
-
-        :param addr: A (host, port) tuple which the server listens on.
-                     You can specify a port value of zero: the server's
-                     *port* attribute will hold the actual port number
-                     used, which can be used in client connections.
-        :param handler: A callable which will be called to process
-                        incoming messages. The handler will be passed
-                        the client address tuple, who the message is from,
-                        a list of recipients and the message data.
-        :param poll_interval: The interval, in seconds, used in the underlying
-                              :func:`select` or :func:`poll` call by
-                              :func:`asyncore.loop`.
-        :param sockmap: A dictionary which will be used to hold
-                        :class:`asyncore.dispatcher` instances used by
-                        :func:`asyncore.loop`. This avoids changing the
-                        :mod:`asyncore` module's global state.
-        """
-
-        def __init__(self, addr, handler, poll_interval, sockmap):
-            smtpd.SMTPServer.__init__(self, addr, None, map=sockmap)
-            self.port = self.socket.getsockname()[1]
-            self._handler = handler
-            self._thread = None
-            self.poll_interval = poll_interval
-
-        def process_message(self, peer, mailfrom, rcpttos, data):
-            """
-            Delegates to the handler passed in to the server's constructor.
-
-            Typically, this will be a test case method.
-            :param peer: The client (host, port) tuple.
-            :param mailfrom: The address of the sender.
-            :param rcpttos: The addresses of the recipients.
-            :param data: The message.
-            """
-            self._handler(peer, mailfrom, rcpttos, data)
-
-        def start(self):
-            """
-            Start the server running on a separate daemon thread.
-            """
-            self._thread = t = threading.Thread(target=self.serve_forever,
-                                                args=(self.poll_interval,))
-            t.setDaemon(True)
-            t.start()
-
-        def serve_forever(self, poll_interval):
-            """
-            Run the :mod:`asyncore` loop until normal termination
-            conditions arise.
-            :param poll_interval: The interval, in seconds, used in the underlying
-                                  :func:`select` or :func:`poll` call by
-                                  :func:`asyncore.loop`.
-            """
-            try:
-                asyncore.loop(poll_interval, map=self._map)
-            except OSError:
-                # On FreeBSD 8, closing the server repeatably
-                # raises this error. We swallow it if the
-                # server has been closed.
-                if self.connected or self.accepting:
-                    raise
-
-        def stop(self, timeout=None):
-            """
-            Stop the thread by closing the server instance.
-            Wait for the server thread to terminate.
-
-            :param timeout: How long to wait for the server thread
-                            to terminate.
-            """
-            self.close()
-            self._thread.join(timeout)
-            self._thread = None
-
     class ControlMixin(object):
         """
         This mixin is used to start a server on a separate thread, and
@@ -794,165 +710,7 @@ if threading:
             self.server_close()
             self.ready.clear()
 
-    class TestHTTPServer(ControlMixin, HTTPServer):
-        """
-        An HTTP server which is controllable using :class:`ControlMixin`.
-
-        :param addr: A tuple with the IP address and port to listen on.
-        :param handler: A handler callable which will be called with a
-                        single parameter - the request - in order to
-                        process the request.
-        :param poll_interval: The polling interval in seconds.
-        :param log: Pass ``True`` to enable log messages.
-        """
-        def __init__(self, addr, handler, poll_interval=0.5,
-                     log=False, sslctx=None):
-            class DelegatingHTTPRequestHandler(BaseHTTPRequestHandler):
-                def __getattr__(self, name, default=None):
-                    if name.startswith('do_'):
-                        return self.process_request
-                    raise AttributeError(name)
-
-                def process_request(self):
-                    self.server._handler(self)
-
-                def log_message(self, format, *args):
-                    if log:
-                        super(DelegatingHTTPRequestHandler,
-                              self).log_message(format, *args)
-            HTTPServer.__init__(self, addr, DelegatingHTTPRequestHandler)
-            ControlMixin.__init__(self, handler, poll_interval)
-            self.sslctx = sslctx
-
-        def get_request(self):
-            try:
-                sock, addr = self.socket.accept()
-                if self.sslctx:
-                    sock = self.sslctx.wrap_socket(sock, server_side=True)
-            except OSError as e:
-                # socket errors are silenced by the caller, print them here
-                sys.stderr.write("Got an error:\n%s\n" % e)
-                raise
-            return sock, addr
-
-    class TestTCPServer(ControlMixin, ThreadingTCPServer):
-        """
-        A TCP server which is controllable using :class:`ControlMixin`.
-
-        :param addr: A tuple with the IP address and port to listen on.
-        :param handler: A handler callable which will be called with a single
-                        parameter - the request - in order to process the request.
-        :param poll_interval: The polling interval in seconds.
-        :bind_and_activate: If True (the default), binds the server and starts it
-                            listening. If False, you need to call
-                            :meth:`server_bind` and :meth:`server_activate` at
-                            some later time before calling :meth:`start`, so that
-                            the server will set up the socket and listen on it.
-        """
-
-        allow_reuse_address = True
-
-        def __init__(self, addr, handler, poll_interval=0.5,
-                     bind_and_activate=True):
-            class DelegatingTCPRequestHandler(StreamRequestHandler):
-
-                def handle(self):
-                    self.server._handler(self)
-            ThreadingTCPServer.__init__(self, addr, DelegatingTCPRequestHandler,
-                                        bind_and_activate)
-            ControlMixin.__init__(self, handler, poll_interval)
-
-        def server_bind(self):
-            super(TestTCPServer, self).server_bind()
-            self.port = self.socket.getsockname()[1]
-
-    class TestUDPServer(ControlMixin, ThreadingUDPServer):
-        """
-        A UDP server which is controllable using :class:`ControlMixin`.
-
-        :param addr: A tuple with the IP address and port to listen on.
-        :param handler: A handler callable which will be called with a
-                        single parameter - the request - in order to
-                        process the request.
-        :param poll_interval: The polling interval for shutdown requests,
-                              in seconds.
-        :bind_and_activate: If True (the default), binds the server and
-                            starts it listening. If False, you need to
-                            call :meth:`server_bind` and
-                            :meth:`server_activate` at some later time
-                            before calling :meth:`start`, so that the server will
-                            set up the socket and listen on it.
-        """
-        def __init__(self, addr, handler, poll_interval=0.5,
-                     bind_and_activate=True):
-            class DelegatingUDPRequestHandler(DatagramRequestHandler):
-
-                def handle(self):
-                    self.server._handler(self)
-
-                def finish(self):
-                    data = self.wfile.getvalue()
-                    if data:
-                        try:
-                            super(DelegatingUDPRequestHandler, self).finish()
-                        except OSError:
-                            if not self.server._closed:
-                                raise
-
-            ThreadingUDPServer.__init__(self, addr,
-                                        DelegatingUDPRequestHandler,
-                                        bind_and_activate)
-            ControlMixin.__init__(self, handler, poll_interval)
-            self._closed = False
-
-        def server_bind(self):
-            super(TestUDPServer, self).server_bind()
-            self.port = self.socket.getsockname()[1]
-
-        def server_close(self):
-            super(TestUDPServer, self).server_close()
-            self._closed = True
-
-    if hasattr(socket, "AF_UNIX"):
-        class TestUnixStreamServer(TestTCPServer):
-            address_family = socket.AF_UNIX
-
-        class TestUnixDatagramServer(TestUDPServer):
-            address_family = socket.AF_UNIX
-
 # - end of server_helper section
-
-@unittest.skipUnless(threading, 'Threading required for this test.')
-class SMTPHandlerTest(BaseTest):
-    TIMEOUT = 8.0
-    def test_basic(self):
-        sockmap = {}
-        server = TestSMTPServer((HOST, 0), self.process_message, 0.001,
-                                sockmap)
-        server.start()
-        addr = (HOST, server.port)
-        h = logging.handlers.SMTPHandler(addr, 'me', 'you', 'Log',
-                                         timeout=self.TIMEOUT)
-        self.assertEqual(h.toaddrs, ['you'])
-        self.messages = []
-        r = logging.makeLogRecord({'msg': 'Hello \u2713'})
-        self.handled = threading.Event()
-        h.handle(r)
-        self.handled.wait(self.TIMEOUT)  # 14314: don't wait forever
-        server.stop()
-        self.assertTrue(self.handled.is_set())
-        self.assertEqual(len(self.messages), 1)
-        peer, mailfrom, rcpttos, data = self.messages[0]
-        self.assertEqual(mailfrom, 'me')
-        self.assertEqual(rcpttos, ['you'])
-        self.assertIn('\nSubject: Log\n', data)
-        self.assertTrue(data.endswith('\n\nHello \u2713'))
-        h.close()
-
-    def process_message(self, *args):
-        self.messages.append(args)
-        self.handled.set()
-
 class MemoryHandlerTest(BaseTest):
 
     """Tests for the MemoryHandler."""
@@ -1374,83 +1132,6 @@ class ConfigFileTest(BaseTest):
         self.assertFalse(logger.disabled)
 
 
-@unittest.skipUnless(threading, 'Threading required for this test.')
-class SocketHandlerTest(BaseTest):
-
-    """Test for SocketHandler objects."""
-
-    if threading:
-        server_class = TestTCPServer
-        address = ('localhost', 0)
-
-    def setUp(self):
-        """Set up a TCP server to receive log messages, and a SocketHandler
-        pointing to that server's address and port."""
-        BaseTest.setUp(self)
-        self.server = server = self.server_class(self.address,
-                                                 self.handle_socket, 0.01)
-        server.start()
-        server.ready.wait()
-        hcls = logging.handlers.SocketHandler
-        if isinstance(server.server_address, tuple):
-            self.sock_hdlr = hcls('localhost', server.port)
-        else:
-            self.sock_hdlr = hcls(server.server_address, None)
-        self.log_output = ''
-        self.root_logger.removeHandler(self.root_logger.handlers[0])
-        self.root_logger.addHandler(self.sock_hdlr)
-        self.handled = threading.Semaphore(0)
-
-    def tearDown(self):
-        """Shutdown the TCP server."""
-        try:
-            self.server.stop(2.0)
-            self.root_logger.removeHandler(self.sock_hdlr)
-            self.sock_hdlr.close()
-        finally:
-            BaseTest.tearDown(self)
-
-    def handle_socket(self, request):
-        conn = request.connection
-        while True:
-            chunk = conn.recv(4)
-            if len(chunk) < 4:
-                break
-            slen = struct.unpack(">L", chunk)[0]
-            chunk = conn.recv(slen)
-            while len(chunk) < slen:
-                chunk = chunk + conn.recv(slen - len(chunk))
-            obj = pickle.loads(chunk)
-            record = logging.makeLogRecord(obj)
-            self.log_output += record.msg + '\n'
-            self.handled.release()
-
-    def test_output(self):
-        # The log message sent to the SocketHandler is properly received.
-        logger = logging.getLogger("tcp")
-        logger.error("spam")
-        self.handled.acquire()
-        logger.debug("eggs")
-        self.handled.acquire()
-        self.assertEqual(self.log_output, "spam\neggs\n")
-
-    def test_noserver(self):
-        # Avoid timing-related failures due to SocketHandler's own hard-wired
-        # one-second timeout on socket.create_connection() (issue #16264).
-        self.sock_hdlr.retryStart = 2.5
-        # Kill the server
-        self.server.stop(2.0)
-        # The logging call should try to connect, which should fail
-        try:
-            raise RuntimeError('Deliberate mistake')
-        except RuntimeError:
-            self.root_logger.exception('Never sent')
-        self.root_logger.error('Never sent, either')
-        now = time.time()
-        self.assertGreater(self.sock_hdlr.retryTime, now)
-        time.sleep(self.sock_hdlr.retryTime - now + 0.001)
-        self.root_logger.error('Nor this')
-
 def _get_temp_domain_socket():
     fd, fn = tempfile.mkstemp(prefix='test_logging_', suffix='.sock')
     os.close(fd)
@@ -1458,248 +1139,6 @@ def _get_temp_domain_socket():
     # 'address already in use' error.
     os.remove(fn)
     return fn
-
-@unittest.skipUnless(hasattr(socket, "AF_UNIX"), "Unix sockets required")
-@unittest.skipUnless(threading, 'Threading required for this test.')
-class UnixSocketHandlerTest(SocketHandlerTest):
-
-    """Test for SocketHandler with unix sockets."""
-
-    if threading and hasattr(socket, "AF_UNIX"):
-        server_class = TestUnixStreamServer
-
-    def setUp(self):
-        # override the definition in the base class
-        self.address = _get_temp_domain_socket()
-        SocketHandlerTest.setUp(self)
-
-    def tearDown(self):
-        SocketHandlerTest.tearDown(self)
-        os.remove(self.address)
-
-@unittest.skipUnless(threading, 'Threading required for this test.')
-class DatagramHandlerTest(BaseTest):
-
-    """Test for DatagramHandler."""
-
-    if threading:
-        server_class = TestUDPServer
-        address = ('localhost', 0)
-
-    def setUp(self):
-        """Set up a UDP server to receive log messages, and a DatagramHandler
-        pointing to that server's address and port."""
-        BaseTest.setUp(self)
-        self.server = server = self.server_class(self.address,
-                                                 self.handle_datagram, 0.01)
-        server.start()
-        server.ready.wait()
-        hcls = logging.handlers.DatagramHandler
-        if isinstance(server.server_address, tuple):
-            self.sock_hdlr = hcls('localhost', server.port)
-        else:
-            self.sock_hdlr = hcls(server.server_address, None)
-        self.log_output = ''
-        self.root_logger.removeHandler(self.root_logger.handlers[0])
-        self.root_logger.addHandler(self.sock_hdlr)
-        self.handled = threading.Event()
-
-    def tearDown(self):
-        """Shutdown the UDP server."""
-        try:
-            self.server.stop(2.0)
-            self.root_logger.removeHandler(self.sock_hdlr)
-            self.sock_hdlr.close()
-        finally:
-            BaseTest.tearDown(self)
-
-    def handle_datagram(self, request):
-        slen = struct.pack('>L', 0) # length of prefix
-        packet = request.packet[len(slen):]
-        obj = pickle.loads(packet)
-        record = logging.makeLogRecord(obj)
-        self.log_output += record.msg + '\n'
-        self.handled.set()
-
-    def test_output(self):
-        # The log message sent to the DatagramHandler is properly received.
-        logger = logging.getLogger("udp")
-        logger.error("spam")
-        self.handled.wait()
-        self.handled.clear()
-        logger.error("eggs")
-        self.handled.wait()
-        self.assertEqual(self.log_output, "spam\neggs\n")
-
-@unittest.skipUnless(hasattr(socket, "AF_UNIX"), "Unix sockets required")
-@unittest.skipUnless(threading, 'Threading required for this test.')
-class UnixDatagramHandlerTest(DatagramHandlerTest):
-
-    """Test for DatagramHandler using Unix sockets."""
-
-    if threading and hasattr(socket, "AF_UNIX"):
-        server_class = TestUnixDatagramServer
-
-    def setUp(self):
-        # override the definition in the base class
-        self.address = _get_temp_domain_socket()
-        DatagramHandlerTest.setUp(self)
-
-    def tearDown(self):
-        DatagramHandlerTest.tearDown(self)
-        os.remove(self.address)
-
-@unittest.skipUnless(threading, 'Threading required for this test.')
-class SysLogHandlerTest(BaseTest):
-
-    """Test for SysLogHandler using UDP."""
-
-    if threading:
-        server_class = TestUDPServer
-        address = ('localhost', 0)
-
-    def setUp(self):
-        """Set up a UDP server to receive log messages, and a SysLogHandler
-        pointing to that server's address and port."""
-        BaseTest.setUp(self)
-        self.server = server = self.server_class(self.address,
-                                                 self.handle_datagram, 0.01)
-        server.start()
-        server.ready.wait()
-        hcls = logging.handlers.SysLogHandler
-        if isinstance(server.server_address, tuple):
-            self.sl_hdlr = hcls(('localhost', server.port))
-        else:
-            self.sl_hdlr = hcls(server.server_address)
-        self.log_output = ''
-        self.root_logger.removeHandler(self.root_logger.handlers[0])
-        self.root_logger.addHandler(self.sl_hdlr)
-        self.handled = threading.Event()
-
-    def tearDown(self):
-        """Shutdown the UDP server."""
-        try:
-            self.server.stop(2.0)
-            self.root_logger.removeHandler(self.sl_hdlr)
-            self.sl_hdlr.close()
-        finally:
-            BaseTest.tearDown(self)
-
-    def handle_datagram(self, request):
-        self.log_output = request.packet
-        self.handled.set()
-
-    def test_output(self):
-        # The log message sent to the SysLogHandler is properly received.
-        logger = logging.getLogger("slh")
-        logger.error("sp\xe4m")
-        self.handled.wait()
-        self.assertEqual(self.log_output, b'<11>sp\xc3\xa4m\x00')
-        self.handled.clear()
-        self.sl_hdlr.append_nul = False
-        logger.error("sp\xe4m")
-        self.handled.wait()
-        self.assertEqual(self.log_output, b'<11>sp\xc3\xa4m')
-        self.handled.clear()
-        self.sl_hdlr.ident = "h\xe4m-"
-        logger.error("sp\xe4m")
-        self.handled.wait()
-        self.assertEqual(self.log_output, b'<11>h\xc3\xa4m-sp\xc3\xa4m')
-
-@unittest.skipUnless(hasattr(socket, "AF_UNIX"), "Unix sockets required")
-@unittest.skipUnless(threading, 'Threading required for this test.')
-class UnixSysLogHandlerTest(SysLogHandlerTest):
-
-    """Test for SysLogHandler with Unix sockets."""
-
-    if threading and hasattr(socket, "AF_UNIX"):
-        server_class = TestUnixDatagramServer
-
-    def setUp(self):
-        # override the definition in the base class
-        self.address = _get_temp_domain_socket()
-        SysLogHandlerTest.setUp(self)
-
-    def tearDown(self):
-        SysLogHandlerTest.tearDown(self)
-        os.remove(self.address)
-
-@unittest.skipUnless(threading, 'Threading required for this test.')
-class HTTPHandlerTest(BaseTest):
-    """Test for HTTPHandler."""
-
-    def setUp(self):
-        """Set up an HTTP server to receive log messages, and a HTTPHandler
-        pointing to that server's address and port."""
-        BaseTest.setUp(self)
-        self.handled = threading.Event()
-
-    def handle_request(self, request):
-        self.command = request.command
-        self.log_data = urlparse(request.path)
-        if self.command == 'POST':
-            try:
-                rlen = int(request.headers['Content-Length'])
-                self.post_data = request.rfile.read(rlen)
-            except:
-                self.post_data = None
-        request.send_response(200)
-        request.end_headers()
-        self.handled.set()
-
-    def test_output(self):
-        # The log message sent to the HTTPHandler is properly received.
-        logger = logging.getLogger("http")
-        root_logger = self.root_logger
-        root_logger.removeHandler(self.root_logger.handlers[0])
-        for secure in (False, True):
-            addr = ('localhost', 0)
-            if secure:
-                try:
-                    import ssl
-                except ImportError:
-                    sslctx = None
-                else:
-                    here = os.path.dirname(__file__)
-                    localhost_cert = os.path.join(here, "keycert.pem")
-                    sslctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                    sslctx.load_cert_chain(localhost_cert)
-
-                    context = ssl.create_default_context(cafile=localhost_cert)
-            else:
-                sslctx = None
-                context = None
-            self.server = server = TestHTTPServer(addr, self.handle_request,
-                                                    0.01, sslctx=sslctx)
-            server.start()
-            server.ready.wait()
-            host = 'localhost:%d' % server.server_port
-            secure_client = secure and sslctx
-            self.h_hdlr = logging.handlers.HTTPHandler(host, '/frob',
-                                                       secure=secure_client,
-                                                       context=context)
-            self.log_data = None
-            root_logger.addHandler(self.h_hdlr)
-
-            for method in ('GET', 'POST'):
-                self.h_hdlr.method = method
-                self.handled.clear()
-                msg = "sp\xe4m"
-                logger.error(msg)
-                self.handled.wait()
-                self.assertEqual(self.log_data.path, '/frob')
-                self.assertEqual(self.command, method)
-                if method == 'GET':
-                    d = parse_qs(self.log_data.query)
-                else:
-                    d = parse_qs(self.post_data.decode('utf-8'))
-                self.assertEqual(d['name'], ['http'])
-                self.assertEqual(d['funcName'], ['test_output'])
-                self.assertEqual(d['msg'], [msg])
-
-            self.server.stop(2.0)
-            self.root_logger.removeHandler(self.h_hdlr)
-            self.h_hdlr.close()
 
 class MemoryTest(BaseTest):
 
@@ -2728,35 +2167,6 @@ class ConfigDictTest(BaseTest):
             self.assertEqual(h.terminator, '!\n')
             logging.warning('Exclamation')
             self.assertTrue(output.getvalue().endswith('Exclamation!\n'))
-
-    @unittest.skipUnless(threading, 'listen() needs threading to work')
-    def setup_via_listener(self, text, verify=None):
-        text = text.encode("utf-8")
-        # Ask for a randomly assigned port (by using port 0)
-        t = logging.config.listen(0, verify)
-        t.start()
-        t.ready.wait()
-        # Now get the port allocated
-        port = t.port
-        t.ready.clear()
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(2.0)
-            sock.connect(('localhost', port))
-
-            slen = struct.pack('>L', len(text))
-            s = slen + text
-            sentsofar = 0
-            left = len(s)
-            while left > 0:
-                sent = sock.send(s[sentsofar:])
-                sentsofar += sent
-                left -= sent
-            sock.close()
-        finally:
-            t.ready.wait(2.0)
-            logging.config.stopListening()
-            t.join(2.0)
 
     @unittest.skipUnless(threading, 'Threading required for this test.')
     def test_listen_config_10_ok(self):
@@ -4136,17 +3546,15 @@ class NTEventLogHandlerTest(BaseTest):
 def test_main():
     run_unittest(BuiltinLevelsTest, BasicFilterTest,
                  CustomLevelsAndFiltersTest, HandlerTest, MemoryHandlerTest,
-                 ConfigFileTest, SocketHandlerTest, DatagramHandlerTest,
-                 MemoryTest, EncodingTest, WarningsTest, ConfigDictTest,
+                 ConfigFileTest, MemoryTest, EncodingTest, WarningsTest, ConfigDictTest,
                  ManagerTest, FormatterTest, BufferingFormatterTest,
                  StreamHandlerTest, LogRecordFactoryTest, ChildLoggerTest,
                  QueueHandlerTest, ShutdownTest, ModuleLevelMiscTest,
                  BasicConfigTest, LoggerAdapterTest, LoggerTest,
                  SMTPHandlerTest, FileHandlerTest, RotatingFileHandlerTest,
                  LastResortTest, LogRecordTest, ExceptionTest,
-                 SysLogHandlerTest, HTTPHandlerTest, NTEventLogHandlerTest,
-                 TimedRotatingFileHandlerTest, UnixSocketHandlerTest,
-                 UnixDatagramHandlerTest, UnixSysLogHandlerTest
+                 SysLogHandlerTest, NTEventLogHandlerTest,
+                 TimedRotatingFileHandlerTest, UnixSysLogHandlerTest
                 )
 
 if __name__ == "__main__":

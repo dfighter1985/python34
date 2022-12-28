@@ -3,7 +3,6 @@ import shutil
 import sys
 import os
 import unittest
-import socket
 import tempfile
 import errno
 from test import support
@@ -70,23 +69,6 @@ class TestSupport(unittest.TestCase):
             del sys.path[0]
             support.unlink(mod_filename)
             support.rmtree('__pycache__')
-
-    def test_HOST(self):
-        s = socket.socket()
-        s.bind((support.HOST, 0))
-        s.close()
-
-    def test_find_unused_port(self):
-        port = support.find_unused_port()
-        s = socket.socket()
-        s.bind((support.HOST, port))
-        s.close()
-
-    def test_bind_port(self):
-        s = socket.socket()
-        support.bind_port(s)
-        s.listen(1)
-        s.close()
 
     # Tests for temp_dir()
 

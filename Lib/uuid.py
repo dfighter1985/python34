@@ -358,17 +358,6 @@ def _ifconfig_getnode():
         if mac:
             return mac
 
-def _arp_getnode():
-    """Get the hardware address on Unix by running arp."""
-    import os, socket
-    try:
-        ip_addr = socket.gethostbyname(socket.gethostname())
-    except OSError:
-        return None
-
-    # Try getting the MAC addr from arp based on our IP address (Solaris).
-    return _find_mac('arp', '-an', [ip_addr], lambda i: -1)
-
 def _lanscan_getnode():
     """Get the hardware address on Unix by running lanscan."""
     # This might work on HP-UX.
@@ -539,7 +528,7 @@ def getnode():
     if sys.platform == 'win32':
         getters = [_windll_getnode, _netbios_getnode, _ipconfig_getnode]
     else:
-        getters = [_unixdll_getnode, _ifconfig_getnode, _arp_getnode,
+        getters = [_unixdll_getnode, _ifconfig_getnode, 
                    _lanscan_getnode, _netstat_getnode]
 
     for getter in getters + [_random_getnode]:

@@ -65,11 +65,6 @@ class AllTest(unittest.TestCase):
             '__future__',
         ])
 
-        if not sys.platform.startswith('java'):
-            # In case _socket fails to build, make this test fail more gracefully
-            # than an AttributeError somewhere deep in CGIHTTPServer.
-            import _socket
-
         # rlcompleter needs special consideration; it import readline which
         # initializes GNU readline which calls setlocale(LC_CTYPE, "")... :-(
         import locale

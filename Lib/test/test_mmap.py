@@ -4,7 +4,6 @@ import unittest
 import os
 import re
 import itertools
-import socket
 import sys
 import weakref
 
@@ -673,18 +672,6 @@ class MmapTests(unittest.TestCase):
         except:
             pass
         m.close()
-
-    @unittest.skipUnless(os.name == 'nt', 'requires Windows')
-    def test_invalid_descriptor(self):
-        # socket file descriptors are valid, but out of range
-        # for _get_osfhandle, causing a crash when validating the
-        # parameters to _get_osfhandle.
-        s = socket.socket()
-        try:
-            with self.assertRaises(OSError):
-                m = mmap.mmap(s.fileno(), 10)
-        finally:
-            s.close()
 
     def test_context_manager(self):
         with mmap.mmap(-1, 10) as m:
