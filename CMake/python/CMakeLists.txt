@@ -3,15 +3,15 @@ PROJECT( python C )
 CMAKE_MINIMUM_REQUIRED( VERSION 2.8 )
 
 SET( python_sources 
-	../../Modules/python.c )
+	../../src/Modules/python.c )
 
 IF(CMAKE_GENERATOR MATCHES Visual*)
-    INCLUDE_DIRECTORIES( ../../Windows )
+    INCLUDE_DIRECTORIES( ../../src/platform/Windows )
 ELSE()
-    INCLUDE_DIRECTORIES( ../../Linux )
+    INCLUDE_DIRECTORIES( ../../src/platform/Linux )
 ENDIF()
 
-INCLUDE_DIRECTORIES( ../../Include )
+INCLUDE_DIRECTORIES( ../../src/Include )
 
 ADD_DEFINITIONS( -D_CONSOLE )
 
