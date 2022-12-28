@@ -2,8 +2,6 @@ PROJECT( pythoncore C )
 
 CMAKE_MINIMUM_REQUIRED( VERSION 2.8 )
 
-SET( INSTALL_DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../../dist )
-
 SET( pythoncore_headers
     ../../Include/abstract.h
     ../../Include/accu.h
@@ -130,12 +128,15 @@ SET( pythoncore_headers
     ../../Objects/unicodetype_db.h
     ../../Parser/parser.h
     ../../Parser/tokenizer.h
-    ../../PC/errmap.h
-    ../../PC/pyconfig.h
     ../../Python/ceval_gil.h
     ../../Python/condvar.h
     ../../Python/importdl.h
     ../../Python/thread_nt.h )
+
+IF(CMAKE_GENERATOR MATCHES Visual*)
+    SET( pythoncore_headers ${pythoncore_headers} ../../PC/errmap.h ../../PC/pyconfig.h )
+ENDIF()
+
 
 SET( pythoncore_sources
     ../../Modules/getbuildinfo.c
@@ -211,7 +212,6 @@ SET( pythoncore_sources
     ../../Modules/cjkcodecs/_codecs_kr.c
     ../../Modules/cjkcodecs/_codecs_tw.c
     ../../Modules/cjkcodecs/multibytecodec.c
-    ../../Modules/_winapi.c
     ../../Objects/abstract.c
     ../../Objects/accu.c
     ../../Objects/boolobject.c
@@ -262,11 +262,6 @@ SET( pythoncore_sources
     ../../Parser/parser.c
     ../../Parser/parsetok.c
     ../../Parser/tokenizer.c
-    ../../PC/winreg.c
-    ../../PC/config.c
-    ../../PC/dl_nt.c
-    ../../PC/getpathp.c
-    ../../PC/msvcrtmodule.c
     ../../Python/pyhash.c
     ../../Python/random.c
     ../../Python/_warnings.c
@@ -277,7 +272,6 @@ SET( pythoncore_sources
     ../../Python/codecs.c
     ../../Python/compile.c
     ../../Python/dynamic_annotations.c
-    ../../Python/dynload_win.c
     ../../Python/errors.c
     ../../Python/fileutils.c
     ../../Python/formatter_unicode.c
@@ -313,8 +307,35 @@ SET( pythoncore_sources
     ../../Python/sysmodule.c
     ../../Python/thread.c
     ../../Python/traceback.c )
-	
-INCLUDE_DIRECTORIES( ../../Include ../../PC ../../Modules/zlib )
-ADD_DEFINITIONS( -D_USRDLL -DPy_BUILD_CORE -DPy_ENABLE_SHARED -DWIN32 )	
+
+IF(CMAKE_GENERATOR MATCHES Visual*)
+    SET( pythoncore_sources ${pythoncore_sources} ../../PC/winreg.c
+    ../../PC/config.c
+    ../../PC/dl_nt.c
+    ../../PC/getpathp.c
+    ../../PC/msvcrtmodule.c
+    ../../Modules/_winapi.c
+    ../../Python/dynload_win.c)
+ELSE()
+    SET( pythoncore_sources ${pythoncore_sources} ../../Linux/config.c
+    ../../Modules/getpath.c
+    ../../Modules/pwdmodule.c
+    ../../Python/dynload_shlib.c )
+ENDIF()
+
+IF(CMAKE_GENERATOR MATCHES Visual*)
+    INCLUDE_DIRECTORIES( ../../PC )
+ELSE()
+    INCLUDE_DIRECTORIES( ../../Linux )
+ENDIF()
+
+INCLUDE_DIRECTORIES( ../../Include ../../Modules/zlib )
+
+ADD_DEFINITIONS( -D_USRDLL -DPy_BUILD_CORE -DPy_ENABLE_SHARED -DSOABI=\"cpython-34m\" -DPREFIX=\".\" -DEXEC_PREFIX=\".\" -DVERSION=\"3.4\" -DVPATH=\"\")
+
+IF(CMAKE_GENERATOR MATCHES Visual*)
+    ADD_DEFINITIONS( -DWIN32 )
+ENDIF()
+
 ADD_LIBRARY( python34 SHARED ${pythoncore_sources} ${pythoncore_headers} )
 INSTALL( TARGETS python34 DESTINATION ${INSTALL_DESTINATION} )
