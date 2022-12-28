@@ -297,6 +297,8 @@ ELSE()
     SET( pythoncore_sources ${pythoncore_sources} ../../Linux/config.c
     ../../Modules/getpath.c
     ../../Modules/pwdmodule.c
+    ../../Modules/_posixsubprocess.c
+    ../../Modules/selectmodule.c
     ../../Python/dynload_shlib.c )
 ENDIF()
 

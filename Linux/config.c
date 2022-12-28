@@ -53,6 +53,9 @@ extern PyObject* PyInit__ast(void);
 extern PyObject* _PyWarnings_Init(void);
 extern PyObject* PyInit__string(void);
 extern PyObject* PyInit_time(void);
+extern PyObject* PyInit__posixsubprocess(void);
+extern PyObject* PyInit_select(void);
+extern PyObject* PyInit_math(void);
 
 struct _inittab _PyImport_Inittab[] = {
 
@@ -102,6 +105,9 @@ struct _inittab _PyImport_Inittab[] = {
     {"_string", PyInit__string},
 
     {"time", PyInit_time},
+    {"_posixsubprocess", PyInit__posixsubprocess},
+    {"select", PyInit_select},
+    {"math", PyInit_math},
 
     /* Sentinel */
     {0, 0}
