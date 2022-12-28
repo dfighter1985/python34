@@ -64,7 +64,6 @@ import re
 import sys
 import time
 import tokenize
-import urllib.parse
 import warnings
 from collections import deque
 from reprlib import Repr
