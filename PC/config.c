@@ -32,7 +32,6 @@ extern PyObject* PyInit__locale(void);
 extern PyObject* PyInit__codecs(void);
 extern PyObject* PyInit__weakref(void);
 extern PyObject* PyInit_xxsubtype(void);
-extern PyObject* PyInit_zipimport(void);
 extern PyObject* PyInit__random(void);
 extern PyObject* PyInit_itertools(void);
 extern PyObject* PyInit__collections(void);
@@ -48,7 +47,6 @@ extern PyObject* PyInit__struct(void);
 extern PyObject* PyInit__datetime(void);
 extern PyObject* PyInit__functools(void);
 extern PyObject* PyInit__json(void);
-extern PyObject* PyInit_zlib(void);
 
 extern PyObject* PyInit__multibytecodec(void);
 extern PyObject* PyInit__codecs_cn(void);
@@ -128,8 +126,6 @@ struct _inittab _PyImport_Inittab[] = {
     {"_json", PyInit__json},
 
     {"xxsubtype", PyInit_xxsubtype},
-    {"zipimport", PyInit_zipimport},
-    {"zlib", PyInit_zlib},
 
     /* CJK codecs */
     {"_multibytecodec", PyInit__multibytecodec},

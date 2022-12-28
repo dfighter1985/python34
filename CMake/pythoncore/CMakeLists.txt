@@ -99,16 +99,6 @@ SET( pythoncore_headers
     ../../Modules/sre_constants.h
     ../../Modules/sre_lib.h
     ../../Modules/_io/_iomodule.h
-    ../../Modules/zlib/crc32.h
-    ../../Modules/zlib/deflate.h
-    ../../Modules/zlib/inffast.h
-    ../../Modules/zlib/inffixed.h
-    ../../Modules/zlib/inflate.h
-    ../../Modules/zlib/inftrees.h
-    ../../Modules/zlib/trees.h
-    ../../Modules/zlib/zconf.h
-    ../../Modules/zlib/zlib.h
-    ../../Modules/zlib/zutil.h
     ../../Modules/cjkcodecs/alg_jisx0201.h
     ../../Modules/cjkcodecs/cjkcodecs.h
     ../../Modules/cjkcodecs/emu_jisx0213_2000.h
@@ -185,8 +175,6 @@ SET( pythoncore_sources
     ../../Modules/_tracemalloc.c
     ../../Modules/timemodule.c
     ../../Modules/xxsubtype.c
-    ../../Modules/zipimport.c
-    ../../Modules/zlibmodule.c
     ../../Modules/_io/fileio.c
     ../../Modules/_io/bytesio.c
     ../../Modules/_io/stringio.c
@@ -194,17 +182,6 @@ SET( pythoncore_sources
     ../../Modules/_io/iobase.c
     ../../Modules/_io/textio.c
     ../../Modules/_io/_iomodule.c
-    ../../Modules/zlib/adler32.c
-    ../../Modules/zlib/compress.c
-    ../../Modules/zlib/crc32.c
-    ../../Modules/zlib/deflate.c
-    ../../Modules/zlib/infback.c
-    ../../Modules/zlib/inffast.c
-    ../../Modules/zlib/inflate.c
-    ../../Modules/zlib/inftrees.c
-    ../../Modules/zlib/trees.c
-    ../../Modules/zlib/uncompr.c
-    ../../Modules/zlib/zutil.c
     ../../Modules/cjkcodecs/_codecs_cn.c
     ../../Modules/cjkcodecs/_codecs_hk.c
     ../../Modules/cjkcodecs/_codecs_iso2022.c
