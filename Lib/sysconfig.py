@@ -343,72 +343,27 @@ def get_makefile_filename():
 
 def _generate_posix_vars():
     """Generate the Python module containing build-time variables."""
+
     import pprint
-    vars = {}
-    # load the installed Makefile:
-    makefile = get_makefile_filename()
-    try:
-        _parse_makefile(makefile, vars)
-    except OSError as e:
-        msg = "invalid Python installation: unable to open %s" % makefile
-        if hasattr(e, "strerror"):
-            msg = msg + " (%s)" % e.strerror
-        raise OSError(msg)
-    # load the installed pyconfig.h:
-    config_h = get_config_h_filename()
-    try:
-        with open(config_h) as f:
-            parse_config_h(f, vars)
-    except OSError as e:
-        msg = "invalid Python installation: unable to open %s" % config_h
-        if hasattr(e, "strerror"):
-            msg = msg + " (%s)" % e.strerror
-        raise OSError(msg)
-    # On AIX, there are wrong paths to the linker scripts in the Makefile
-    # -- these paths are relative to the Python source, but when installed
-    # the scripts are in another directory.
-    if _PYTHON_BUILD:
-        vars['BLDSHARED'] = vars['LDSHARED']
+    vars = get_config_vars()
+    pprint.pprint(vars)
 
-    # There's a chicken-and-egg situation on OS X with regards to the
-    # _sysconfigdata module after the changes introduced by #15298:
-    # get_config_vars() is called by get_platform() as part of the
-    # `make pybuilddir.txt` target -- which is a precursor to the
-    # _sysconfigdata.py module being constructed.  Unfortunately,
-    # get_config_vars() eventually calls _init_posix(), which attempts
-    # to import _sysconfigdata, which we won't have built yet.  In order
-    # for _init_posix() to work, if we're on Darwin, just mock up the
-    # _sysconfigdata module manually and populate it with the build vars.
-    # This is more than sufficient for ensuring the subsequent call to
-    # get_platform() succeeds.
-    name = '_sysconfigdata'
-    if 'darwin' in sys.platform:
-        import types
-        module = types.ModuleType(name)
-        module.build_time_vars = vars
-        sys.modules[name] = module
-
-    pybuilddir = 'build/lib.%s-%s' % (get_platform(), sys.version[:3])
-    if hasattr(sys, "gettotalrefcount"):
-        pybuilddir += '-pydebug'
-    os.makedirs(pybuilddir, exist_ok=True)
-    destfile = os.path.join(pybuilddir, name + '.py')
-
-    with open(destfile, 'w', encoding='utf8') as f:
-        f.write('# system configuration generated and used by'
-                ' the sysconfig module\n')
-        f.write('build_time_vars = ')
-        pprint.pprint(vars, stream=f)
-
-    # Create file used for sys.path fixup -- see Modules/getpath.c
-    with open('pybuilddir.txt', 'w', encoding='ascii') as f:
-        f.write(pybuilddir)
+    raise Exception("_generate_posix_vars is disabled in this build.")
 
 def _init_posix(vars):
     """Initialize the module as appropriate for POSIX systems."""
     # _sysconfigdata is generated at build time, see _generate_posix_vars()
-    from _sysconfigdata import build_time_vars
-    vars.update(build_time_vars)
+    #from _sysconfigdata import build_time_vars
+    #vars.update(build_time_vars)
+
+    # However we don't have this in our build. So let's make something up that will suffice
+    vars['LIBDEST'] = get_path('stdlib')
+    vars['BINLIBDEST'] = get_path('platstdlib')
+    vars['INCLUDEPY'] = get_path('include')
+    vars['EXT_SUFFIX'] = '.so'
+    vars['EXE'] = ''
+    vars['VERSION'] = _PY_VERSION_SHORT_NO_DOT
+    vars['BINDIR'] = os.path.dirname(_safe_realpath(sys.executable))
 
 def _init_non_posix(vars):
     """Initialize the module as appropriate for NT"""
@@ -433,30 +388,7 @@ def parse_config_h(fp, vars=None):
     optional dictionary is passed in as the second argument, it is
     used instead of a new dictionary.
     """
-    if vars is None:
-        vars = {}
-    import re
-    define_rx = re.compile("#define ([A-Z][A-Za-z0-9_]+) (.*)\n")
-    undef_rx = re.compile("/[*] #undef ([A-Z][A-Za-z0-9_]+) [*]/\n")
-
-    while True:
-        line = fp.readline()
-        if not line:
-            break
-        m = define_rx.match(line)
-        if m:
-            n, v = m.group(1, 2)
-            try:
-                v = int(v)
-            except ValueError:
-                pass
-            vars[n] = v
-        else:
-            m = undef_rx.match(line)
-            if m:
-                vars[m.group(1)] = 0
-    return vars
-
+    raise Exception("parse_config_h is disabled in this build")
 
 def get_config_h_filename():
     """Return the path of pyconfig.h."""
