@@ -124,7 +124,10 @@ SET( pythoncore_headers
     ../../Python/thread_nt.h )
 
 IF(CMAKE_GENERATOR MATCHES Visual*)
-    SET( pythoncore_headers ${pythoncore_headers} ../../PC/errmap.h ../../PC/pyconfig.h )
+    SET( pythoncore_headers
+		${pythoncore_headers}
+		../../Windows/errmap.h
+		../../Windows/pyconfig.h )
 ENDIF()
 
 
@@ -286,15 +289,19 @@ SET( pythoncore_sources
     ../../Python/traceback.c )
 
 IF(CMAKE_GENERATOR MATCHES Visual*)
-    SET( pythoncore_sources ${pythoncore_sources} ../../PC/winreg.c
-    ../../PC/config.c
-    ../../PC/dl_nt.c
-    ../../PC/getpathp.c
-    ../../PC/msvcrtmodule.c
+    SET( pythoncore_sources
+	${pythoncore_sources}
+	../../Windows/winreg.c
+    ../../Windows/config.c
+    ../../Windows/dl_nt.c
+    ../../Windows/getpathp.c
+    ../../Windows/msvcrtmodule.c
     ../../Modules/_winapi.c
     ../../Python/dynload_win.c)
 ELSE()
-    SET( pythoncore_sources ${pythoncore_sources} ../../Linux/config.c
+    SET( pythoncore_sources
+	${pythoncore_sources}
+	../../Linux/config.c
     ../../Modules/getpath.c
     ../../Modules/pwdmodule.c
     ../../Modules/_posixsubprocess.c
@@ -303,12 +310,12 @@ ELSE()
 ENDIF()
 
 IF(CMAKE_GENERATOR MATCHES Visual*)
-    INCLUDE_DIRECTORIES( ../../PC )
+    INCLUDE_DIRECTORIES( ../../Windows )
 ELSE()
     INCLUDE_DIRECTORIES( ../../Linux )
 ENDIF()
 
-INCLUDE_DIRECTORIES( ../../Include ../../Modules/zlib )
+INCLUDE_DIRECTORIES( ../../Include )
 
 ADD_DEFINITIONS( -D_USRDLL -DPy_BUILD_CORE -DPy_ENABLE_SHARED -DSOABI=\"cpython-34m\" -DPREFIX=\".\" -DEXEC_PREFIX=\".\" -DVERSION=\"3.4\" -DVPATH=\"\")
 

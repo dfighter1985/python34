@@ -2,14 +2,11 @@ PROJECT( python C )
 
 CMAKE_MINIMUM_REQUIRED( VERSION 2.8 )
 
-SET( python_headers )
 SET( python_sources 
 	../../Modules/python.c )
 
-
-
 IF(CMAKE_GENERATOR MATCHES Visual*)
-    INCLUDE_DIRECTORIES( ../../PC )
+    INCLUDE_DIRECTORIES( ../../Windows )
 ELSE()
     INCLUDE_DIRECTORIES( ../../Linux )
 ENDIF()
@@ -22,7 +19,7 @@ IF(NOT CMAKE_GENERATOR MATCHES Visual*)
     SET( CMAKE_INSTALL_RPATH "./" )
 ENDIF()
 
-ADD_EXECUTABLE( ${PROJECT_NAME} ${python_sources} ${python_headers} )
+ADD_EXECUTABLE( ${PROJECT_NAME} ${python_sources} )
 
 IF(CMAKE_GENERATOR MATCHES Visual*)
 	TARGET_LINK_LIBRARIES( ${PROJECT_NAME} python34)
