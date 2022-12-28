@@ -300,8 +300,8 @@ IF(CMAKE_GENERATOR MATCHES Visual*)
     ../../src/Python/dynload_win.c)
 ELSE()
     SET( pythoncore_sources
-	${pythoncore_sources}
-	../../Linux/config.c
+    ${pythoncore_sources}
+    ../../src/platform/Linux/config.c
     ../../src/Modules/getpath.c
     ../../src/Modules/pwdmodule.c
     ../../src/Modules/_posixsubprocess.c
