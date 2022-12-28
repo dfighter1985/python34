@@ -39,7 +39,6 @@ extern PyObject* PyInit_atexit(void);
 extern PyObject* PyInit__stat(void);
 extern PyObject* PyInit__locale(void);
 extern PyObject* PyInit__io(void);
-extern PyObject* PyInit_zipimport(void);
 extern PyObject* PyInit_faulthandler(void);
 extern PyObject* PyInit__tracemalloc(void);
 extern PyObject* PyInit__symtable(void);
@@ -53,6 +52,7 @@ extern PyObject* PyInit_gc(void);
 extern PyObject* PyInit__ast(void);
 extern PyObject* _PyWarnings_Init(void);
 extern PyObject* PyInit__string(void);
+extern PyObject* PyInit_time(void);
 
 struct _inittab _PyImport_Inittab[] = {
 
@@ -72,7 +72,6 @@ struct _inittab _PyImport_Inittab[] = {
 	{"_stat", PyInit__stat},
 	{"_locale", PyInit__locale},
 	{"_io", PyInit__io},
-	{"zipimport", PyInit_zipimport},
 	{"faulthandler", PyInit_faulthandler},
 	{"_tracemalloc", PyInit__tracemalloc},
 	{"_symtable", PyInit__symtable},
@@ -101,6 +100,8 @@ struct _inittab _PyImport_Inittab[] = {
 
     /* This lives in Objects/unicodeobject.c */
     {"_string", PyInit__string},
+
+    {"time", PyInit_time},
 
     /* Sentinel */
     {0, 0}
