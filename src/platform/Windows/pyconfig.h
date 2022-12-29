@@ -61,7 +61,9 @@ WIN32 is still required for the locale module.
 #define HAVE_TMPFILE
 #define HAVE_TMPNAM
 #define HAVE_CLOCK
-#define HAVE_STRERROR
+#ifndef HAVE_STRERROR
+	#define HAVE_STRERROR
+#endif
 #endif
 
 #ifdef HAVE_IO_H
