@@ -12,7 +12,34 @@ ENDIF()
 SET( CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/../dist" CACHE PATH "" FORCE )
 SET( INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX} )
 
-ADD_SUBDIRECTORY( pythoncore )
-ADD_SUBDIRECTORY( python )
+SET( BUILD_INTERPRETER TRUE CACHE BOOL "Build the interpreter" )
+SET( INSTALL_MINIMAL_LIB_ONLY TRUE CACHE BOOL "Install only the minimal library files neccessary" )
 
-INSTALL( DIRECTORY ../Lib DESTINATION ${INSTALL_DESTINATION}/ )
+ADD_SUBDIRECTORY( pythoncore )
+
+IF( BUILD_INTERPRETER )
+	ADD_SUBDIRECTORY( python )
+ENDIF()
+
+IF( INSTALL_MINIMAL_LIB_ONLY )
+	INSTALL( DIRECTORY ../Lib/encodings DESTINATION ${INSTALL_DESTINATION}/Lib/ )
+	INSTALL( FILES
+			../Lib/_bootlocale.py
+			../Lib/_collections_abc.py
+			../Lib/_sitebuiltins.py
+			../Lib/_weakrefset.py
+			../Lib/abc.py
+			../Lib/codecs.py
+			../Lib/genericpath.py
+			../Lib/io.py
+			../Lib/ntpath.py
+			../Lib/os.py
+			../Lib/posixpath.py
+			../Lib/site.py
+			../Lib/stat.py
+			../Lib/sysconfig.py
+			DESTINATION ${INSTALL_DESTINATION}/Lib/ )
+ELSE()
+	INSTALL( DIRECTORY ../Lib DESTINATION ${INSTALL_DESTINATION}/ )
+ENDIF()
+
