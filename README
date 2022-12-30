@@ -13,9 +13,10 @@ It has the following distinct features:
 * Smaller set of modules
 * CMake build system
 
-Build:
-======
+Build & install:
+================
 * mkdir build
 * cd build
-* cmake ../CMake
+* cmake ../cmake
 * make
+* make install
