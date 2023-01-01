@@ -136,7 +136,6 @@ SET( pythoncore_sources
     ../../src/Modules/_bisectmodule.c
     ../../src/Modules/_codecsmodule.c
     ../../src/Modules/_collectionsmodule.c
-    ../../src/Modules/_csv.c
     ../../src/Modules/_functoolsmodule.c
     ../../src/Modules/_heapqmodule.c
     ../../src/Modules/_json.c

@@ -36,7 +36,6 @@ extern PyObject* PyInit__heapq(void);
 extern PyObject* PyInit__bisect(void);
 extern PyObject* PyInit__symtable(void);
 extern PyObject* PyInit_mmap(void);
-extern PyObject* PyInit__csv(void);
 extern PyObject* PyInit__sre(void);
 extern PyObject* PyInit_parser(void);
 extern PyObject* PyInit_winreg(void);
@@ -108,7 +107,6 @@ struct _inittab _PyImport_Inittab[] = {
     {"_collections", PyInit__collections},
     {"_symtable", PyInit__symtable},
     {"mmap", PyInit_mmap},
-    {"_csv", PyInit__csv},
     {"_sre", PyInit__sre},
     {"parser", PyInit_parser},
     {"winreg", PyInit_winreg},
