@@ -151,7 +151,6 @@ SET( pythoncore_sources
     ../../src/Modules/_weakref.c
     ../../src/Modules/arraymodule.c
     ../../src/Modules/atexitmodule.c
-    ../../src/Modules/audioop.c
     ../../src/Modules/binascii.c
     ../../src/Modules/cmathmodule.c
     ../../src/Modules/_datetimemodule.c
