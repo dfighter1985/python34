@@ -16,6 +16,12 @@
 #include "datetime.h"
 #undef Py_BUILD_CORE
 
+#ifdef MS_WINDOWS
+#define timezone _timezone
+#define tzname _tzname
+#define daylight _daylight
+#endif
+
 /*[clinic input]
 module datetime
 class datetime.datetime "PyDateTime_DateTime *" "&PyDateTime_DateTimeType"
