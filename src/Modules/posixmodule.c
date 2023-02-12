@@ -1043,7 +1043,32 @@ _parse_off_t(PyObject* arg, void* addr)
 }
 #endif
 
-#if defined _MSC_VER && _MSC_VER >= 1400
+#if defined _MSC_VER
+#if _MSC_VER > 1600
+
+int _PyVerify_fd(int fd)
+{
+	/// Backported from upstream CPython commit d81431f
+	intptr_t osh;
+
+	if (fd < 0) {
+		_set_errno(EBADF);
+		return 0;
+	}
+
+	/// This will throw a nice fat exception if we passed an invalid file handle.
+	/// However since I'm aiming at embedding this Python distribution I don't want to silence CRT exceptions globally.
+	osh = _get_osfhandle(fd);
+
+	if (osh != (intptr_t)-1)
+		return 1;
+	else
+		return 0;
+}
+
+#define _PyVerify_fd_dup2(fd1, fd2) (_PyVerify_fd(fd1) && (fd2) >= 0)
+
+#elif _MSC_VER >= 1400
 /* Microsoft CRT in VS2005 and higher will verify that a filehandle is
  * valid and raise an assertion if it isn't.
  * Normally, an invalid fd is likely to be a C program error and therefore
@@ -1135,6 +1160,7 @@ _PyVerify_fd_dup2(int fd1, int fd2)
 /* dummy version. _PyVerify_fd() is already defined in fileobject.h */
 #define _PyVerify_fd_dup2(A, B) (1)
 #endif
+#endif /// MSC_VER
 
 #ifdef MS_WINDOWS
 /* The following structure was copied from
