@@ -20,3 +20,8 @@ Build & install:
 * cmake ../cmake
 * make
 * make install
+
+Run:
+================
+* cd dist
+* PYTHONHOME=./ PYTHONPATH=./Lib ./python
